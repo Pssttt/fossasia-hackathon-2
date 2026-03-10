@@ -1,30 +1,14 @@
 const toggle = document.getElementById('toggle')
 const statusEl = document.querySelector('#status span')
-const passwordInput = document.getElementById('password-input')
-const passwordSave = document.getElementById('password-save')
-const passwordSaved = document.getElementById('password-saved')
 
 // Load saved state
-chrome.storage.local.get(['enabled', 'parentalPassword'], (data) => {
+chrome.storage.local.get('enabled', (data) => {
   toggle.checked = data.enabled !== false
-  if (data.parentalPassword) passwordInput.placeholder = '••••••••'
 })
 
 // Save on toggle
 toggle.addEventListener('change', () => {
   chrome.storage.local.set({ enabled: toggle.checked })
-})
-
-// Save password
-passwordSave.addEventListener('click', () => {
-  const pwd = passwordInput.value.trim()
-  if (!pwd) return
-  chrome.storage.local.set({ parentalPassword: pwd }, () => {
-    passwordInput.value = ''
-    passwordInput.placeholder = '••••••••'
-    passwordSaved.style.display = 'block'
-    setTimeout(() => { passwordSaved.style.display = 'none' }, 2000)
-  })
 })
 
 // Check backend health

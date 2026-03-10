@@ -74,35 +74,6 @@
         color: #94a3b8;
       }
       .feature strong { color: #e2e8f0; }
-      .divider { border: none; border-top: 1px solid #1e293b; margin: 12px 0; }
-      .section-label { font-size: 0.7rem; color: #64748b; margin-bottom: 6px; }
-      .password-row {
-        display: flex;
-        gap: 6px;
-        margin-bottom: 6px;
-      }
-      .password-row input {
-        flex: 1;
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 6px;
-        color: white;
-        padding: 6px 10px;
-        font-size: 0.8rem;
-        outline: none;
-      }
-      .password-row input:focus { border-color: #2563eb; }
-      .password-row button {
-        background: #2563eb;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 0.8rem;
-        cursor: pointer;
-      }
-      .password-row button:hover { background: #1d4ed8; }
-      .password-saved { font-size: 0.7rem; color: #22c55e; display: none; }
     </style>
   </head>
   <body>
@@ -130,14 +101,6 @@
       <div class="feature">🏠 <span>All inference runs <strong>locally</strong> — no cloud</span></div>
     </div>
 
-    <hr class="divider" />
-
-    <p class="section-label">Parental control password</p>
-    <div class="password-row">
-      <input type="password" id="password-input" placeholder="Set password" />
-      <button id="password-save">Save</button>
-    </div>
-    <p class="password-saved" id="password-saved">Password saved!</p>
 
     <script src="popup.js"></script>
   </body>

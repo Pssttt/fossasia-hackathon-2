@@ -199,7 +199,7 @@ observer.observe(document.body, { childList: true, subtree: true })
 // Blur all images immediately via CSS
 const _psStyle = document.createElement('style')
 _psStyle.textContent = `
-  img:not(.ps-safe):not(.ps-unsafe) {
+  img:not(.ps-safe) {
     filter: blur(20px) !important;
     transition: filter 0.3s ease;
   }
@@ -215,7 +215,7 @@ chrome.runtime.onMessage.addListener((message) => {
     const safe = safetyMap[img.src]
     if (safe === false) {
       img.classList.add('ps-unsafe')
-      addBadge(img, 'unsafe')
+      addBadge(img)
     } else {
       // Safe or not scanned — unblur
       img.classList.add('ps-safe')
@@ -223,96 +223,24 @@ chrome.runtime.onMessage.addListener((message) => {
   })
 })
 
-function addBadge(img, type) {
+function addBadge(img) {
   if (img._psBadged) return
   img._psBadged = true
 
-  const badge = document.createElement('div')
-  badge.textContent = '⚠ Unsafe — click to unlock'
-  badge.style.cssText = `
-    position:absolute; top:6px; left:6px; z-index:9999;
-    background:rgba(220,38,38,0.85); color:#fff;
-    font:bold 11px/1 sans-serif; padding:3px 7px;
-    border-radius:4px; pointer-events:none;
+  const overlay = document.createElement('div')
+  overlay.style.cssText = `
+    position:absolute; inset:0; z-index:9998;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
   `
-  wrapImage(img, badge)
-
-  {
-    // Add overlay message on unsafe images
-    const overlay = document.createElement('div')
-    overlay.style.cssText = `
-      position:absolute; inset:0; z-index:9998;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      cursor:pointer; gap:6px;
-    `
-    overlay.innerHTML = `
-      <div style="font-size:13px; font-weight:bold; color:white; text-shadow:0 1px 3px rgba(0,0,0,0.8)">
-        🔞 Sensitive content
-      </div>
-      <div style="font-size:11px; color:rgba(255,255,255,0.85); text-shadow:0 1px 3px rgba(0,0,0,0.8); text-align:center; padding:0 8px">
-        Talk to a trusted adult to unlock
-      </div>
-    `
-    overlay.addEventListener('click', () => showPasswordModal(img))
-    img.parentElement?.appendChild(overlay) || wrapImage(img, overlay)
-  }
-}
-
-function showPasswordModal(img) {
-  const modal = document.createElement('div')
-  modal.style.cssText = `
-    position:fixed; inset:0; z-index:99999;
-    background:rgba(0,0,0,0.7);
-    display:flex; align-items:center; justify-content:center;
-  `
-  modal.innerHTML = `
-    <div style="background:#1e293b; border-radius:12px; padding:24px; width:300px; font-family:sans-serif; color:white;">
-      <h2 style="font-size:1rem; margin-bottom:6px;">Parental Control</h2>
-      <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:16px;">
-        This image has been hidden for your safety. A parent or guardian can enter the password to reveal it.
-      </p>
-      <input id="ps-pwd-input" type="password" placeholder="Enter parental password"
-        style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid #334155;
-               background:#0f172a; color:white; font-size:0.85rem; outline:none; margin-bottom:8px;" />
-      <p id="ps-pwd-error" style="font-size:0.75rem; color:#ef4444; min-height:16px; margin-bottom:8px;"></p>
-      <div style="display:flex; gap:8px;">
-        <button id="ps-pwd-cancel"
-          style="flex:1; padding:8px; border-radius:8px; border:1px solid #334155;
-                 background:transparent; color:#94a3b8; cursor:pointer; font-size:0.85rem;">
-          Cancel
-        </button>
-        <button id="ps-pwd-confirm"
-          style="flex:1; padding:8px; border-radius:8px; border:none;
-                 background:#2563eb; color:white; cursor:pointer; font-size:0.85rem; font-weight:600;">
-          Unlock
-        </button>
-      </div>
+  overlay.innerHTML = `
+    <div style="font-size:13px; font-weight:bold; color:white; text-shadow:0 1px 3px rgba(0,0,0,0.8)">
+      🔞 Sensitive content
+    </div>
+    <div style="font-size:11px; color:rgba(255,255,255,0.85); text-shadow:0 1px 3px rgba(0,0,0,0.8); text-align:center; padding:0 8px">
+      Talk to a trusted adult before viewing
     </div>
   `
-  document.body.appendChild(modal)
-
-  const input = modal.querySelector('#ps-pwd-input')
-  const error = modal.querySelector('#ps-pwd-error')
-  input.focus()
-
-  modal.querySelector('#ps-pwd-cancel').addEventListener('click', () => modal.remove())
-  modal.querySelector('#ps-pwd-confirm').addEventListener('click', () => tryUnlock())
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock() })
-
-  function tryUnlock() {
-    chrome.storage.local.get('parentalPassword', (data) => {
-      const saved = data.parentalPassword || '1234'
-      if (input.value === saved) {
-        img.classList.add('ps-safe')
-        img.classList.remove('ps-unsafe')
-        modal.remove()
-      } else {
-        error.textContent = 'Incorrect password. Please ask a parent.'
-        input.value = ''
-        input.focus()
-      }
-    })
-  }
+  wrapImage(img, overlay)
 }
 
 function wrapImage(img, badge) {
@@ -331,7 +259,7 @@ function wrapImage(img, badge) {
 function collectImages() {
   return Array.from(document.querySelectorAll('img'))
     .filter((img) => img.complete && img.naturalWidth >= 100 && img.naturalHeight >= 100)
-    .slice(0, 50)
+    .slice(0, 10)
     .map((img) => {
       let dataUrl = null
       try {
