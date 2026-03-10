@@ -170,7 +170,7 @@ function showGroomBanner(el, result) {
   el.parentNode.insertBefore(banner, el.nextSibling)
 }
 
-// ── MutationObserver ────────────────────────────────────────────────────────
+// ── MutationObserver (text interception + response analysis) ─────────────────
 
 const observer = new MutationObserver(() => {
   if (!enabled) return
@@ -187,6 +187,106 @@ const observer = new MutationObserver(() => {
       checkResponse(el)
     })
   }
+
+  // Scan any new images added to the DOM
+  scanImages()
 })
 
 observer.observe(document.body, { childList: true, subtree: true })
+
+// ── NSFW Image Scanning ──────────────────────────────────────────────────────
+
+// Blur all images immediately via CSS
+const _psStyle = document.createElement('style')
+_psStyle.textContent = `
+  img:not(.ps-safe):not(.ps-unsafe) {
+    filter: blur(20px) !important;
+    transition: filter 0.3s ease;
+  }
+  img.ps-safe { filter: none !important; }
+`
+document.documentElement.appendChild(_psStyle)
+
+// Apply results from backend
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type !== 'APPLY_BLUR') return
+  const { safetyMap } = message
+  document.querySelectorAll('img').forEach((img) => {
+    const safe = safetyMap[img.src]
+    if (safe === true) {
+      img.classList.add('ps-safe')
+      addBadge(img, 'sfw')
+    } else if (safe === false) {
+      img.classList.add('ps-unsafe')
+      addBadge(img, 'unsafe')
+    } else {
+      // Not scanned (cross-origin) — unblur so page isn't broken
+      img.classList.add('ps-safe')
+    }
+  })
+})
+
+function addBadge(img, type) {
+  if (img._psBadged) return
+  img._psBadged = true
+
+  const isSfw = type === 'sfw'
+  const badge = document.createElement('div')
+  badge.textContent = isSfw ? '✓ SFW' : '⚠ Unsafe'
+  badge.style.cssText = `
+    position:absolute; top:6px; left:6px; z-index:9999;
+    background:${isSfw ? 'rgba(22,163,74,0.85)' : 'rgba(220,38,38,0.85)'}; color:#fff;
+    font:bold 11px/1 sans-serif; padding:3px 7px;
+    border-radius:4px; pointer-events:none;
+  `
+  wrapImage(img, badge)
+}
+
+function wrapImage(img, badge) {
+  if (img.parentElement?.classList.contains('ps-img-wrap')) {
+    img.parentElement.appendChild(badge)
+    return
+  }
+  const wrapper = document.createElement('div')
+  wrapper.className = 'ps-img-wrap'
+  wrapper.style.cssText = 'position:relative; display:inline-block;'
+  img.parentElement.insertBefore(wrapper, img)
+  wrapper.appendChild(img)
+  wrapper.appendChild(badge)
+}
+
+function collectImages() {
+  return Array.from(document.querySelectorAll('img'))
+    .filter((img) => img.complete && img.naturalWidth >= 100 && img.naturalHeight >= 100)
+    .slice(0, 50)
+    .map((img) => {
+      let dataUrl = null
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        canvas.getContext('2d').drawImage(img, 0, 0)
+        dataUrl = canvas.toDataURL('image/png')
+      } catch {
+        /* cross-origin — skip */
+      }
+      return {
+        dataUrl,
+        src: img.src,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        filename: img.src.split('/').pop().split('?')[0].replace(/[^a-zA-Z0-9._-]/g, '_') || 'image.png',
+      }
+    })
+    .filter((img) => img.dataUrl)
+}
+
+function scanImages() {
+  if (!enabled) return
+  const images = collectImages()
+  if (images.length === 0) return
+  chrome.runtime.sendMessage({ type: 'IMAGES_FOUND', pageUrl: location.href, images })
+}
+
+// Initial scan on page load
+scanImages()

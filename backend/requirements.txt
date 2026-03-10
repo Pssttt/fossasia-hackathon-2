@@ -5,3 +5,6 @@ presidio-anonymizer
 spacy
 transformers
 torch
+nudenet
+opencv-python
+Pillow
