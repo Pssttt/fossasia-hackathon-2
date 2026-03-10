@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "PromptShield + AIGroomDetect",
+  "version": "1.0.0",
+  "description": "Redacts PII from your AI prompts and flags manipulative responses — all on-device.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://gemini.google.com/*",
+    "http://localhost:8000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "PromptShield"
+  }
+}

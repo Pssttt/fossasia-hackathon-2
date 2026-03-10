@@ -1,0 +1,21 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.python-version
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# HuggingFace cache (large model files)
+~/.cache/huggingface/
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
